@@ -19,9 +19,10 @@ class MomentAcc() {
     }
 }
 
-class HarmonicOscillator(kc: Double, nr_samplesc: Int) {
+class HarmonicOscillator(acc_rulec: String, kc: Double, nr_samplesc: Int) {
     val k: Double = kc
     val nr_samples: Int = nr_samplesc
+    val acc_rule: String = acc_rulec
     var x: Double = 0
     val beta: Double = 1
     var step_size: Double = 1
@@ -44,12 +45,25 @@ class HarmonicOscillator(kc: Double, nr_samplesc: Int) {
         return 0.5 * k * state * state
     }
     def take_step() : Boolean = {
-        val x_new: Double = x + (0.5 - gen.nextDouble) * step_size
-        if (gen.nextDouble < exp(-beta * (energy(x_new) - energy(x)))) {
-            x = x_new
-            return true
+        if (acc_rule == "metropolis") {
+            val x_new: Double = x + (0.5 - gen.nextDouble) * step_size
+            if (gen.nextDouble < exp(-beta * (energy(x_new) - energy(x)))) {
+                x = x_new
+                return true
+            }
+            return false
         }
-        return false
+        else if (acc_rule == "symmetric") {
+            val x_new: Double = x + (0.5 - gen.nextDouble) * step_size
+            if (gen.nextDouble < exp(-beta * energy(x_new)) / (exp(-beta * energy(x_new)) + exp(-beta * energy(x)))) {
+                x = x_new
+                return true
+            }
+            return false
+        }
+        else {
+            throw new IllegalArgumentException
+        }
     }
     def take_steps(N: Int) : Double = {
         var nr_accepted: Int = 0
@@ -88,14 +102,16 @@ class HarmonicOscillator(kc: Double, nr_samplesc: Int) {
         }
     }
     def print_results() {
-        println("mean squared displacement")
-        println(r2.mean + "\t" + r2.error() + "\t" + r2.std())
+        println("mean squared displacement, std")
+        println(r2.mean + "\t" + r2.std())
+        println("analytical result\n" + 1 / k)
+        println("acceptance: " + acceptance.mean)
     }
 }
 
 object RecyclingMC {
     def main(args: Array[String]) {
-        var ho = new HarmonicOscillator(args(0).toDouble, args(1).toInt)
+        var ho = new HarmonicOscillator(args(0), args(1).toDouble, args(2).toInt)
         ho.run()
   }
 }
