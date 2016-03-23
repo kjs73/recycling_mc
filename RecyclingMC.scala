@@ -29,6 +29,7 @@ class HarmonicOscillator(kc: Double, nr_samplesc: Int) {
     val equilibration_samples: Int = nr_samples / 2
     var r2 = new MomentAcc
     var acceptance = new MomentAcc
+    var energy_stat = new MomentAcc
     var gen = Random
     gen.setSeed(42)
     def run() {
@@ -68,6 +69,7 @@ class HarmonicOscillator(kc: Double, nr_samplesc: Int) {
             acceptance.add(0)
         }
         r2.add(x * x)
+        energy_stat.add(energy(x))
     }
     def choose_stepsize() {
         val adapt_batch: Int = 100
@@ -92,6 +94,8 @@ class HarmonicOscillator(kc: Double, nr_samplesc: Int) {
         println(r2.mean + "\t" + r2.std())
         println("analytical result\n" + 1 / k)
         println("acceptance: " + acceptance.mean)
+        println("energy\n" + energy_stat.mean + "\t" + energy_stat.std())
+        println("analytical result\n0.5")
     }
 }
 
@@ -120,6 +124,7 @@ class HarmonicOscillatorRecycle(kc: Double, nr_samples: Int, nr_trial_movesc: In
         var trial_states: Array[Double] = new Array[Double](nr_trial_moves)
         var weights: Array[Double] = new Array[Double](nr_trial_moves)
         var r2_increment: Double = 0 
+        var energy_increment: Double = 0
         var sum_weights: Double = 0
         for (i <- 0 until nr_trial_moves) {
             if (i > 0) {
@@ -130,10 +135,13 @@ class HarmonicOscillatorRecycle(kc: Double, nr_samples: Int, nr_trial_movesc: In
             }
             weights(i) = exp(-beta * energy(trial_states(i)))
             r2_increment += weights(i) * trial_states(i) * trial_states(i)
+            energy_increment += weights(i) * energy(trial_states(i))
             sum_weights += weights(i)
         }
         r2_increment /= sum_weights
+        energy_increment /= sum_weights
         r2.add(r2_increment)
+        energy_stat.add(energy_increment)
         val threshold = gen.nextDouble * sum_weights
         var step_index: Int = 0
         var partial_sum = weights(0)
@@ -145,8 +153,10 @@ class HarmonicOscillatorRecycle(kc: Double, nr_samples: Int, nr_trial_movesc: In
     }
     override def print_results() {
         println("mean squared displacement")
-        println(r2.mean)
+        println(r2.mean + "\t" + r2.std())
         println("analytical result\n" + 1 / k)
+        println("energy\n" + energy_stat.mean + "\t" + energy_stat.std())
+        println("analytical result\n0.5")
     }
 }
 
