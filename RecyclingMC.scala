@@ -165,7 +165,7 @@ object RecyclingMC {
             new HarmonicOscillatorRecycle(args(1).toDouble, args(2).toInt, args(3).toInt).run()
         }
         else {
-            throw new IllegalArgumentException
+            throw new IllegalArgumentException("First argument has to be one of: metropolis, symmetric, recycle.")
         }
   }
 }
